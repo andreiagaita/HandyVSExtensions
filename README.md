@@ -1,4 +1,4 @@
-HandyVSExtensions
+Handy Visual Studio Extensions
 =================
 
 Fun little extensions and utility code for VS. Includes the infamous* Trailing Whitespace Marker extension!
