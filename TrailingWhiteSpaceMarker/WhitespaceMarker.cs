@@ -47,25 +47,12 @@ namespace TrailingWhiteSpaceMarker
 			_layer = view.GetAdornmentLayer("TrailingWhiteSpaceMarker");
 			_wsProvider = wsProvider;
 			_textView.LayoutChanged += OnLayoutChanged;
-
 			// set color of image to contrast to background
-			var b = view.Background as SolidColorBrush;
-			_backgroundColor = b.Color;
-			var color = b.Color.ToComplement();
-			var pathBrush = new SolidColorBrush(color);
+			_backgroundColor = (view.Background as SolidColorBrush).Color;
 
 			_visualBrush = new VisualBrush();
 			using (var s = System.IO.File.OpenRead(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "images", "trollface.xaml"))) {
-				var xamlImg = XamlReader.Load(s) as Page;
-				if (xamlImg != null && xamlImg.Content is Canvas) {
-					foreach (var child in (xamlImg.Content as Canvas).Children) {
-						var path = child as System.Windows.Shapes.Path;
-						if (path == null)
-							continue;
-						path.Stroke = pathBrush;
-					}
-					_visualBrush.Visual = xamlImg;
-				}
+				_visualBrush.Visual = XamlReader.Load(s) as Page;
 			}
 
 			Brush penBrush = new SolidColorBrush(Colors.Red);
@@ -110,47 +97,24 @@ namespace TrailingWhiteSpaceMarker
 
 		private void UpdateVisuals(IEnumerable<SnapshotSpan> spans, ITextSnapshot snapshot)
 		{
-			//grab a reference to the lines in the current TextView 
+			//grab a reference to the lines in the current TextView
 			IWpfTextViewLineCollection textViewLines = _textView.TextViewLines;
+
+			bool updatedBrushes = false;
 
 			foreach (var span in spans) {
 
 				Geometry g = textViewLines.GetMarkerGeometry(span);
+				if (g != null) {
 
-				var b = _textView.Background as SolidColorBrush;
-				// the very first time we do this, get the size of the whitespace box and render the image to that so we can tile it and it looks good
-				// update if font size changes or background color changes
-				var rect = textViewLines.GetMarkerGeometry(new SnapshotSpan(_textView.TextSnapshot, Span.FromBounds(span.Start, span.Start + 1))).Bounds;
-				if (_brush is VisualBrush || b.Color != _backgroundColor || _glyphRect.Width != rect.Width || _glyphRect.Height != rect.Height) {
-					var xamlImg = _visualBrush.Visual as Page;
-					_backgroundColor = b.Color;
-					var color = _backgroundColor.ToComplement();
-					var pathBrush = new SolidColorBrush(color);
-
-					if (xamlImg != null && xamlImg.Content is Canvas) {
-						foreach (var child in (xamlImg.Content as Canvas).Children) {
-							var path = child as System.Windows.Shapes.Path;
-							if (path == null)
-								continue;
-							path.Stroke = pathBrush;
-						}
+					// the first time we render, get the size of a whitespace character
+					// and render the glyph to that size so we can tile it and it looks good
+					// also do it we font size changes or background color changes
+					if (!updatedBrushes) {
+						var rect = textViewLines.GetMarkerGeometry(new SnapshotSpan(_textView.TextSnapshot, Span.FromBounds(span.Start, span.Start + 1))).Bounds;
+						UpdateBrushes(rect);
 					}
 
-					_glyphRect = rect;
-					int padding = 0;
-					var source = (_visualBrush.Visual as UIElement).Render(Brushes.Transparent, _glyphRect.Height+padding, _glyphRect.Height+padding, new Rect(0, 0, padding, padding));
-					ImageBrush brush = new ImageBrush(source);
-					brush.TileMode = TileMode.Tile;
-					brush.Stretch = Stretch.None;
-					brush.Viewbox = new Rect(0, 0, _glyphRect.Height+padding, _glyphRect.Height+padding);
-					brush.ViewboxUnits = BrushMappingMode.Absolute;
-					brush.Viewport = new Rect(0, 0, _glyphRect.Height, _glyphRect.Height);
-					brush.ViewportUnits = BrushMappingMode.Absolute;
-					_brush = brush;
-					_brush.Freeze();
-				}
-
-				if (g != null) {
 					GeometryDrawing drawing = new GeometryDrawing(_brush, _pen, g);
 					drawing.Freeze();
 
@@ -169,11 +133,58 @@ namespace TrailingWhiteSpaceMarker
 			}
 		}
 
+		// render the glyph to the appropriate size and created a tiled brush if we haven't done it yet
+		// or if the font or background color changes.
+		private void UpdateBrushes(Rect rect)
+		{
+			var b = _textView.Background as SolidColorBrush;
+			if (_brush is VisualBrush || b.Color != _backgroundColor || _glyphRect.Width != rect.Width || _glyphRect.Height != rect.Height) {
+				_backgroundColor = b.Color;
+
+				var glyph = _visualBrush.Visual as Page;
+				if (glyph == null) {
+					_brush = new SolidColorBrush(Colors.Yellow.ModifyBrightness(1.4));
+					return;
+				}
+
+				var color = _backgroundColor.ToComplement();
+				var pathBrush = new SolidColorBrush(color);
+
+				if (glyph != null && glyph.Content is Canvas) {
+					foreach (var child in (glyph.Content as Canvas).Children) {
+						var path = child as System.Windows.Shapes.Path;
+						if (path == null)
+							continue;
+						path.Stroke = pathBrush;
+					}
+				}
+
+				_glyphRect = rect;
+
+				int padding = 0;
+				var source = glyph.Render(Brushes.Transparent,
+					_glyphRect.Height + padding,
+					_glyphRect.Height + padding,
+					new Rect(0, 0, padding, padding));
+
+				ImageBrush brush = new ImageBrush(source);
+				brush.TileMode = TileMode.Tile;
+				brush.Stretch = Stretch.None;
+				brush.Viewbox = new Rect(0, 0, _glyphRect.Height + padding, _glyphRect.Height + padding);
+				brush.ViewboxUnits = BrushMappingMode.Absolute;
+				brush.Viewport = new Rect(0, 0, _glyphRect.Height, _glyphRect.Height);
+				brush.ViewportUnits = BrushMappingMode.Absolute;
+				_brush = brush;
+				_brush.Freeze();
+			}
+
+		}
+
 		public IEnumerable<ITagSpan<WhitespaceTag>> GetTags(NormalizedSnapshotSpanCollection changedSpans)
 		{
 			ITextSnapshot snapshot = _textView.TextSnapshot;
 			if (snapshot.Length == 0)
-				yield break; //don't do anything if the buffer is empty 
+				yield break; //don't do anything if the buffer is empty
 
 			var cache = _wsProvider.GetCache();
 			var spans = cache.Where(x => changedSpans.Contains(x.Span)); // get only the ones being requested

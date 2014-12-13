@@ -7,19 +7,16 @@ using Microsoft.VisualStudio.Text;
 
 namespace TrailingWhiteSpaceMarker
 {
-	#region Adornment Factory
 	/// <summary>
-	/// Establishes an <see cref="IAdornmentLayer"/> to place the adornment on and exports the <see cref="IWpfTextViewCreationListener"/>
-	/// that instantiates the adornment on the event of a <see cref="IWpfTextView"/>'s creation
+	/// Establishes an <see cref="IAdornmentLayer"/> to place the adornment on and exports the <see cref="IViewTaggerProvider"/>
+	/// that instantiates the adornment and tags it
 	/// </summary>
-
 	[Export(typeof(IViewTaggerProvider))]
-	[Export(typeof(IWpfTextViewCreationListener))]
-	[Order(Before = "default")]
 	[TagType(typeof(SmartTag))]
-	[ContentType("code")]
 	[TextViewRole(PredefinedTextViewRoles.Document)]
-	internal sealed class WhitespaceMarkerFactory : IWpfTextViewCreationListener, IViewTaggerProvider
+	[ContentType("code")]
+	[Order(Before = "default")]
+	internal sealed class WhitespaceMarkerFactory : IViewTaggerProvider
 	{
 		/// <summary>
 		/// Defines the adornment layer for the adornment. This layer is ordered
@@ -30,17 +27,12 @@ namespace TrailingWhiteSpaceMarker
 		[Order(After = PredefinedAdornmentLayers.Selection, Before = PredefinedAdornmentLayers.Text)]
 		public AdornmentLayerDefinition editorAdornmentLayer = null;
 
+		/// <summary>
+		/// Keeps a cache of all the tagged and adorned whitespace we've seen so far
+		/// (usually only what has been shown on the viewport so far)
+		/// </summary>
 		[Import]
 		WhitespaceProvider _wsProvider = null;
-
-		/// <summary>
-		/// Instantiates a TrailingWhiteSpaceMarker manager when a textView is created.
-		/// </summary>
-		/// <param name="textView">The <see cref="IWpfTextView"/> upon which the adornment should be placed</param>
-		public void TextViewCreated(IWpfTextView textView)
-		{
-			//new WhitespaceMarker(textView, wsProvider);
-		}
 
 		public ITagger<T> CreateTagger<T>(ITextView textView, ITextBuffer buffer) where T : ITag
 		{
@@ -49,11 +41,9 @@ namespace TrailingWhiteSpaceMarker
 			}
 
 			//make sure we are tagging only the top buffer
-			if (buffer == textView.TextBuffer && textView is IWpfTextView) {
-				//return new WhitespaceTagger(buffer, textView, this, _wsProvider) as ITagger<T>;
+			if (buffer == textView.TextBuffer && textView is IWpfTextView)
 				return new WhitespaceMarker(textView as IWpfTextView, _wsProvider) as ITagger<T>;
-			} else return null;
+			return null;
 		}
 	}
-	#endregion //Adornment Factory
 }
