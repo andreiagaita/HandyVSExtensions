@@ -82,6 +82,8 @@ namespace TrailingWhiteSpaceMarker
 		{
 			foreach (ITextViewLine line in lines) {
 				int start, end;
+				if (line.Start == line.End) // very empty line
+					continue;
 				if (!WhitespaceParser.GetBounds(_textView, line.Start, line.End, out start, out end)) {
 					//no trailing whitespace on this line, remove it from the provider list
 					_wsProvider.Remove(_textView.TextSnapshot.GetLineNumberFromPosition(line.Start));

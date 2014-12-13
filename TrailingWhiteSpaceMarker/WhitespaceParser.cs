@@ -14,11 +14,12 @@ namespace TrailingWhiteSpaceMarker
 		public static bool GetBounds(ITextView textView, int lineStart, int lineEnd, out int start, out int end)
 		{
 			start = end = 0;
-			if (textView.TextSnapshot.Length > lineEnd &&
-				(textView.TextSnapshot[lineEnd + 1] == '\r' || textView.TextSnapshot[lineEnd + 1] == '\n')) {
+			if (textView.TextSnapshot.Length == lineEnd ||
+				(textView.TextSnapshot.Length > lineEnd &&
+				(textView.TextSnapshot[lineEnd] == '\r' || textView.TextSnapshot[lineEnd] == '\n'))) {
 
 				end = lineEnd;
-				start = end;
+				start = end - 1;
 				for (; start >= lineStart; --start) {
 					char c = textView.TextSnapshot[start];
 					if (!char.IsWhiteSpace(c))
