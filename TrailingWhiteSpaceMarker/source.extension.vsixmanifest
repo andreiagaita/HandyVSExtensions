@@ -1,9 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Id="TrailingWhiteSpaceMarker..58eb3788-5768-42d6-b50f-a130198eb66a" Version="1.0" Language="en-US" Publisher="Andreia Gaita" />
+    <Identity Id="TrailingWhiteSpaceMarker..58eb3788-5768-42d6-b50f-a130198eb66a" Version="1.1" Language="en-US" Publisher="Andreia Gaita" />
     <DisplayName>Trailing Whitespace Marker</DisplayName>
-    <Description xml:space="preserve">Highlights and helps remove evil trailing whitespace.High</Description>
+    <Description xml:space="preserve">Highlights and helps remove evil trailing whitespace.</Description>
   </Metadata>
   <Installation>
     <InstallationTarget Id="Microsoft.VisualStudio.Pro" Version="[10.0,]" />

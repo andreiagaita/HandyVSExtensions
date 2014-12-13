@@ -81,6 +81,8 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Collections\HashTable.cs" />
+    <Compile Include="Collections\IKeyedObject.cs" />
     <Compile Include="ColorExtensions.cs" />
     <Compile Include="Images.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

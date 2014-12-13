@@ -7,6 +7,7 @@ using System.ComponentModel.Composition;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SpoiledCat.Utils.Collections;
 
 namespace TrailingWhiteSpaceMarker
 {
@@ -60,63 +61,5 @@ namespace TrailingWhiteSpaceMarker
 				line.Span = line.Span.TranslateTo(snapshot, SpanTrackingMode.EdgeInclusive);
 			}
 		}
-
-
-		internal interface IKeyedObject<T>
-		{
-			T Key { get; }
-		}
-
-		internal class SpanCache<T> : IKeyedObject<T>
-		{
-			public T LineNumber;
-			public SnapshotSpan Span;
-			public ITrackingSpan TrackingSpan;
-
-			public SpanCache(T line)
-			{
-				this.LineNumber = line;
-			}
-
-			public SpanCache(T line, SnapshotSpan span, ITrackingSpan trackingSpan = null)
-			{
-				this.LineNumber = line;
-				this.Span = span;
-				this.TrackingSpan = trackingSpan;
-			}
-
-			public override int GetHashCode()
-			{
-				return Convert.ToInt32(LineNumber);
-			}
-
-			public static explicit operator SnapshotSpan(SpanCache<T> obj)
-			{
-				return obj.Span;
-			}
-
-			public static explicit operator int(SpanCache<T> obj)
-			{
-				return Convert.ToInt32(obj.LineNumber);
-			}
-
-			public T Key
-			{
-				get
-				{
-					return LineNumber;
-				}
-				private set
-				{
-					LineNumber = value;
-				}
-			}
-		}
-
-		internal class SpanCache : SpanCache<int>
-		{
-			public SpanCache(int line, SnapshotSpan span, ITrackingSpan trackingSpan = null) : base(line, span, trackingSpan) { }
-		}
 	}
-
 }

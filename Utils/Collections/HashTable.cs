@@ -5,9 +5,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TrailingWhiteSpaceMarker
+namespace SpoiledCat.Utils.Collections
 {
-	internal class HashTable<Key, T> : ISet<T> where T : TrailingWhiteSpaceMarker.WhitespaceProvider.IKeyedObject<Key>
+	public class HashTable<Key, T> : ISet<T> where T : IKeyedObject<Key>
 	{
 		Dictionary<Key, T> items = new Dictionary<Key, T>();
 

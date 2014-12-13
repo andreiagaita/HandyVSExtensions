@@ -71,13 +71,12 @@ namespace TrailingWhiteSpaceMarker
 		private void OnLayoutChanged(object sender, TextViewLayoutChangedEventArgs e)
 		{
 			var spans = UpdateWhitespace(e.NewOrReformattedLines);
+			UpdateVisuals(spans, e.NewSnapshot);
 			if (TagsChanged != null) {
 				foreach (var span in spans)
 					TagsChanged(this, new SnapshotSpanEventArgs(span));
 			}
-			UpdateVisuals(spans, e.NewSnapshot);
 		}
-
 
 		private IEnumerable<SnapshotSpan> UpdateWhitespace(IEnumerable<ITextViewLine> lines)
 		{
