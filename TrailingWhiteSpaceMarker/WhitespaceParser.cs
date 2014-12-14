@@ -1,11 +1,6 @@
 ﻿using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
-using Microsoft.VisualStudio.Text.Formatting;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace TrailingWhiteSpaceMarker
 {
@@ -34,13 +29,26 @@ namespace TrailingWhiteSpaceMarker
 			return false;
 		}
 
+		/// <summary>
+		/// Go through all the text and create tracking spans for all trailing whitespace
+		/// and any empty lines at the end of the document
+		/// </summary>
+		/// <param name="textView"></param>
+		/// <returns></returns>
 		public static IEnumerable<ITrackingSpan> CreateWhitespaceTrackers(ITextView textView)
 		{
 			var snapshot = textView.TextSnapshot;
-			foreach (var line in snapshot.Lines) {
+			bool emptyLinesAtEnd = true;
+			int start, end;
+			for (int i = snapshot.LineCount - 1; i >= 0; --i) {
+				var line = snapshot.GetLineFromLineNumber(i);
+				// when removing all trailing whitespace, clear empty lines at end too
+				if (line.Start != line.End)
+					emptyLinesAtEnd = false;
 
-				int start, end;
-				if (GetBounds(textView, line.Start, line.End, out start, out end)) {
+				if (emptyLinesAtEnd && line.Start == line.End) {
+					yield return snapshot.CreateTrackingSpan(Span.FromBounds(line.Start, line.EndIncludingLineBreak), SpanTrackingMode.EdgeInclusive);
+				} else if (GetBounds(textView, line.Start, line.End, out start, out end)) {
 					yield return snapshot.CreateTrackingSpan(Span.FromBounds(start, end), SpanTrackingMode.EdgeInclusive);
 				}
 			}

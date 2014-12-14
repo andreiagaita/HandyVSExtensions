@@ -1,30 +1,23 @@
-﻿using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Media;
+﻿using Microsoft.VisualStudio.Language.Intellisense;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Formatting;
-using System.Windows.Media.Imaging;
-using System;
-using System.Windows.Data;
-using System.Windows.Resources;
-
-using System.Windows.Markup;
-using System.Reflection;
-using SpoiledCat.Utils;
-using System.ComponentModel.Composition;
-using System.Collections.Generic;
 using Microsoft.VisualStudio.Text.Tagging;
+using SpoiledCat.Utils;
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using Microsoft.VisualStudio.Language.Intellisense;
-using System.Linq;
-using System.Windows.Shapes;
+using System.Reflection;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Markup;
+using System.Windows.Media;
 
 namespace TrailingWhiteSpaceMarker
 {
 
 	///<summary>
-	///TrailingWhiteSpaceMarker surrounds trailing whitespace with a box
+	///TrailingWhiteSpaceMarker surrounds trailing whitespace with a box and actions for removing it
 	///</summary>
 	internal class WhitespaceMarker : ITagger<WhitespaceTag>, IDisposable
 	{
@@ -66,7 +59,7 @@ namespace TrailingWhiteSpaceMarker
 
 
 		/// <summary>
-		/// On layout change add the adornment to any reformatted lines
+		/// On layout change add the adornment and tags to any reformatted lines
 		/// </summary>
 		private void OnLayoutChanged(object sender, TextViewLayoutChangedEventArgs e)
 		{
@@ -82,16 +75,16 @@ namespace TrailingWhiteSpaceMarker
 		{
 			foreach (ITextViewLine line in lines) {
 				int start, end;
-				if (line.Start == line.End) // very empty line
-					continue;
-				if (!WhitespaceParser.GetBounds(_textView, line.Start, line.End, out start, out end)) {
-					//no trailing whitespace on this line, remove it from the provider list
+				SnapshotSpan span;
+				if (line.Start == line.End || !WhitespaceParser.GetBounds(_textView, line.Start, line.End, out start, out end)) {
+					//no trailing whitespace on this line, remove it from the provider list and create an empty span so
+					// we can remove existing tags later on
+					span = new SnapshotSpan(_textView.TextSnapshot, Span.FromBounds(line.Start, line.Start));
 					_wsProvider.Remove(_textView.TextSnapshot.GetLineNumberFromPosition(line.Start));
-					continue;
+				} else {
+					span = new SnapshotSpan(_textView.TextSnapshot, Span.FromBounds(start, end));
+					_wsProvider.Update(span.Snapshot.GetLineNumberFromPosition(line.Start), span);
 				}
-
-				SnapshotSpan span = new SnapshotSpan(_textView.TextSnapshot, Span.FromBounds(start, end));
-				_wsProvider.Update(span.Snapshot.GetLineNumberFromPosition(line.Start), span);
 				yield return span;
 			}
 		}
@@ -104,6 +97,8 @@ namespace TrailingWhiteSpaceMarker
 			bool updatedBrushes = false;
 
 			foreach (var span in spans) {
+				if (span.Start == span.End)
+					continue;
 
 				Geometry g = textViewLines.GetMarkerGeometry(span);
 				if (g != null) {
@@ -187,11 +182,11 @@ namespace TrailingWhiteSpaceMarker
 			if (snapshot.Length == 0)
 				yield break; //don't do anything if the buffer is empty
 
-			var cache = _wsProvider.GetCache();
-			var spans = cache.Where(x => changedSpans.Contains(x.Span)); // get only the ones being requested
-
-			foreach (var span in spans) {
-				yield return new TagSpan<WhitespaceTag>(span.Span, new WhitespaceTag(GetSmartTagActions(span.Span)));
+			foreach (var span in changedSpans) {
+				if (span.Start == span.End)
+					yield return null;
+				else
+					yield return new TagSpan<WhitespaceTag>(span, new WhitespaceTag(GetSmartTagActions(span)));
 			}
 		}
 

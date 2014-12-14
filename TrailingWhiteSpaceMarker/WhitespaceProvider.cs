@@ -4,10 +4,10 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.Composition;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using SpoiledCat.Utils.Collections;
+using System.Linq;
 
 namespace TrailingWhiteSpaceMarker
 {
@@ -16,14 +16,6 @@ namespace TrailingWhiteSpaceMarker
 	{
 		HashTable<int, SpanCache> _spanCache = new HashTable<int, SpanCache>();
 
-		IEnumerable<T> GetCache<T>()
-		{
-			if (typeof(T).IsInterface)
-				return _spanCache.Select(x => (T)x.TrackingSpan);
-			else
-				return _spanCache.Cast<T>();
-		}
-
 		public IEnumerable<SpanCache> GetCache()
 		{
 			return _spanCache;
@@ -31,17 +23,29 @@ namespace TrailingWhiteSpaceMarker
 
 		internal IEnumerable<SnapshotSpan> GetSpans()
 		{
-			return GetCache<SnapshotSpan>();
+			return _spanCache.Cast<SnapshotSpan>();
+		}
+
+		internal bool Contains(int lineNumber)
+		{
+			return _spanCache.Contains(lineNumber);
+		}
+
+		internal SnapshotSpan GetSpanFromLineNumber(int lineNumber)
+		{
+			if (!Contains(lineNumber))
+				throw new ArgumentException("Invalid line number", "lineNumber");
+			return _spanCache[lineNumber].Span;
 		}
 
 		internal IEnumerable<ITrackingSpan> GetTrackingSpans()
 		{
-			return GetCache<ITrackingSpan>();
+			return _spanCache.Select(x => x.TrackingSpan);
 		}
 
-		internal void Remove(int lineNumber)
+		internal SpanCache Remove(int lineNumber)
 		{
-			_spanCache.Remove(lineNumber);
+			return _spanCache.Remove(lineNumber);
 		}
 
 		internal void Update(int lineNumber, SnapshotSpan span, ITrackingSpan trackingSpan = null)

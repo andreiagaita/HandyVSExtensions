@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace SpoiledCat.Utils.Collections
 {
-	public class HashTable<Key, T> : ISet<T> where T : IKeyedObject<Key>
+	public class HashTable<Key, T> : ISet<T> where T : class, IKeyedObject<Key>
 	{
 		Dictionary<Key, T> items = new Dictionary<Key, T>();
 
@@ -55,12 +55,13 @@ namespace SpoiledCat.Utils.Collections
 			return true;
 		}
 
-		public bool Remove(Key key)
+		public T Remove(Key key)
 		{
 			if (!Contains(key))
-				return false;
+				return null;
+			var ret = items[key];
 			items.Remove(key);
-			return true;
+			return ret;
 		}
 
 		public T Get(Key key)
