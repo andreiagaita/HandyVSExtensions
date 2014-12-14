@@ -14,7 +14,7 @@ namespace TrailingWhiteSpaceMarker
 	[Export]
 	internal class WhitespaceProvider
 	{
-		HashTable<int, SpanCache> _spanCache = new HashTable<int, SpanCache>();
+		MutantHashSet<int, SpanCache> _spanCache = new MutantHashSet<int, SpanCache>();
 
 		public IEnumerable<SpanCache> GetCache()
 		{

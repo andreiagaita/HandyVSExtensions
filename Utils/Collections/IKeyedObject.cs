@@ -6,8 +6,13 @@ using System.Threading.Tasks;
 
 namespace SpoiledCat.Utils.Collections
 {
-	public interface IKeyedObject<T>
+	/// <summary>
+	/// An object that wants to expose a property as its key,
+	/// for use with the MutantHashSet
+	/// </summary>
+	/// <typeparam name="KeyType">The type of the key</typeparam>
+	public interface IKeyedObject<KeyType>
 	{
-		T Key { get; }
+		KeyType Key { get; }
 	}
 }

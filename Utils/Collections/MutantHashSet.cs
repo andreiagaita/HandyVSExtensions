@@ -7,7 +7,13 @@ using System.Threading.Tasks;
 
 namespace SpoiledCat.Utils.Collections
 {
-	public class HashTable<Key, T> : ISet<T> where T : class, IKeyedObject<Key>
+	/// <summary>
+	/// A HashSet implementation that allows manipulating and retrieving items by
+	/// value or by a key that represents the value
+	/// </summary>
+	/// <typeparam name="Key"></typeparam>
+	/// <typeparam name="T"></typeparam>
+	public class MutantHashSet<Key, T> : ISet<T> where T : class, IKeyedObject<Key>
 	{
 		Dictionary<Key, T> items = new Dictionary<Key, T>();
 
