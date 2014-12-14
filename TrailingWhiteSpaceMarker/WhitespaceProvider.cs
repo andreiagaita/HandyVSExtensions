@@ -23,7 +23,8 @@ namespace TrailingWhiteSpaceMarker
 
 		internal IEnumerable<SnapshotSpan> GetSpans()
 		{
-			return _spanCache.Cast<SnapshotSpan>();
+			foreach (var span in _spanCache)
+				yield return span.Span;
 		}
 
 		internal bool Contains(int lineNumber)

@@ -31,12 +31,12 @@ namespace TrailingWhiteSpaceMarker
 			return Convert.ToInt32(LineNumber);
 		}
 
-		public static explicit operator SnapshotSpan(SpanCache<T> obj)
+		public static implicit operator SnapshotSpan(SpanCache<T> obj)
 		{
 			return obj.Span;
 		}
 
-		public static explicit operator int(SpanCache<T> obj)
+		public static implicit operator int(SpanCache<T> obj)
 		{
 			return Convert.ToInt32(obj.LineNumber);
 		}

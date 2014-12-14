@@ -63,33 +63,39 @@ namespace TrailingWhiteSpaceMarker
 		/// </summary>
 		private void OnLayoutChanged(object sender, TextViewLayoutChangedEventArgs e)
 		{
-			var spans = UpdateWhitespace(e.NewOrReformattedLines);
-			UpdateVisuals(spans, e.NewSnapshot);
+			var spans = GetWhitespace(e.NewOrReformattedLines);
+			RenderVisuals(spans, e.NewSnapshot);
+
+			// signal that tags need changing, with the old (removed) and the new (added) spans
 			if (TagsChanged != null) {
 				foreach (var span in spans)
 					TagsChanged(this, new SnapshotSpanEventArgs(span));
 			}
 		}
 
-		private IEnumerable<SnapshotSpan> UpdateWhitespace(IEnumerable<ITextViewLine> lines)
+		private IEnumerable<SnapshotSpan> GetWhitespace(IEnumerable<ITextViewLine> lines)
 		{
+			List<SnapshotSpan> spans = new List<SnapshotSpan>();
 			foreach (ITextViewLine line in lines) {
 				int start, end;
 				SnapshotSpan span;
 				if (line.Start == line.End || !WhitespaceParser.GetBounds(_textView, line.Start, line.End, out start, out end)) {
 					//no trailing whitespace on this line, remove it from the provider list and create an empty span so
 					// we can remove existing tags later on
-					span = new SnapshotSpan(_textView.TextSnapshot, Span.FromBounds(line.Start, line.Start));
-					_wsProvider.Remove(_textView.TextSnapshot.GetLineNumberFromPosition(line.Start));
+					var old = _wsProvider.Remove(_textView.TextSnapshot.GetLineNumberFromPosition(line.Start));
+					if (old == null)
+						continue;
+					span = old.Span;
 				} else {
 					span = new SnapshotSpan(_textView.TextSnapshot, Span.FromBounds(start, end));
 					_wsProvider.Update(span.Snapshot.GetLineNumberFromPosition(line.Start), span);
 				}
-				yield return span;
+				spans.Add(span);
 			}
+			return spans;
 		}
 
-		private void UpdateVisuals(IEnumerable<SnapshotSpan> spans, ITextSnapshot snapshot)
+		private void RenderVisuals(IEnumerable<SnapshotSpan> spans, ITextSnapshot snapshot)
 		{
 			//grab a reference to the lines in the current TextView
 			IWpfTextViewLineCollection textViewLines = _textView.TextViewLines;
@@ -97,7 +103,8 @@ namespace TrailingWhiteSpaceMarker
 			bool updatedBrushes = false;
 
 			foreach (var span in spans) {
-				if (span.Start == span.End)
+				// only draw the existing trailing whitespace spans
+				if (!_wsProvider.Contains(snapshot.GetLineNumberFromPosition(span.Start)))
 					continue;
 
 				Geometry g = textViewLines.GetMarkerGeometry(span);
@@ -108,7 +115,7 @@ namespace TrailingWhiteSpaceMarker
 					// also do it we font size changes or background color changes
 					if (!updatedBrushes) {
 						var rect = textViewLines.GetMarkerGeometry(new SnapshotSpan(_textView.TextSnapshot, Span.FromBounds(span.Start, span.Start + 1))).Bounds;
-						UpdateBrushes(rect);
+						UpdateGlyphBrush(rect);
 					}
 
 					GeometryDrawing drawing = new GeometryDrawing(_brush, _pen, g);
@@ -131,7 +138,7 @@ namespace TrailingWhiteSpaceMarker
 
 		// render the glyph to the appropriate size and created a tiled brush if we haven't done it yet
 		// or if the font or background color changes.
-		private void UpdateBrushes(Rect rect)
+		private void UpdateGlyphBrush(Rect rect)
 		{
 			var b = _textView.Background as SolidColorBrush;
 			if (_brush is VisualBrush || b.Color != _backgroundColor || _glyphRect.Width != rect.Width || _glyphRect.Height != rect.Height) {
@@ -176,6 +183,11 @@ namespace TrailingWhiteSpaceMarker
 
 		}
 
+		/// <summary>
+		/// Callback to update tags
+		/// </summary>
+		/// <param name="changedSpans">The spans to update</param>
+		/// <returns></returns>
 		public IEnumerable<ITagSpan<WhitespaceTag>> GetTags(NormalizedSnapshotSpanCollection changedSpans)
 		{
 			ITextSnapshot snapshot = _textView.TextSnapshot;
@@ -183,24 +195,23 @@ namespace TrailingWhiteSpaceMarker
 				yield break; //don't do anything if the buffer is empty
 
 			foreach (var span in changedSpans) {
-				if (span.Start == span.End)
-					yield return null;
-				else
+				int key = snapshot.GetLineNumberFromPosition(span.Start);
+				if (_wsProvider.Contains(key))
 					yield return new TagSpan<WhitespaceTag>(span, new WhitespaceTag(GetSmartTagActions(span)));
 			}
 		}
 
 		private ReadOnlyCollection<SmartTagActionSet> GetSmartTagActions(SnapshotSpan span)
 		{
-			List<SmartTagActionSet> actionSetList = new List<SmartTagActionSet>();
-			List<ISmartTagAction> actionList = new List<ISmartTagAction>();
-
 			ITrackingSpan trackingSpan = span.Snapshot.CreateTrackingSpan(span, SpanTrackingMode.EdgeInclusive);
+
+			List<ISmartTagAction> actionList = new List<ISmartTagAction>();
 			actionList.Add(new WhitespaceRemoverAction(trackingSpan));
 			actionList.Add(new AllWhitespaceRemoverAction(_textView, WhitespaceParser.CreateWhitespaceTrackers));
-			SmartTagActionSet actionSet = new SmartTagActionSet(actionList.AsReadOnly());
-			actionSetList.Add(actionSet);
-			return actionSetList.AsReadOnly();
+
+			return new List<SmartTagActionSet>() {
+				new SmartTagActionSet(actionList.AsReadOnly())
+			}.AsReadOnly();
 		}
 
 		public void Dispose()

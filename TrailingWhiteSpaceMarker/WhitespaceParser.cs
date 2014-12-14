@@ -42,15 +42,17 @@ namespace TrailingWhiteSpaceMarker
 			int start, end;
 			for (int i = snapshot.LineCount - 1; i >= 0; --i) {
 				var line = snapshot.GetLineFromLineNumber(i);
-				// when removing all trailing whitespace, clear empty lines at end too
-				if (line.Start != line.End)
-					emptyLinesAtEnd = false;
-
+				// when removing all trailing whitespace, clear empty lines at end too,
+				// but not empty/whitespace only lines in the middle of code
 				if (emptyLinesAtEnd && line.Start == line.End) {
 					yield return snapshot.CreateTrackingSpan(Span.FromBounds(line.Start, line.EndIncludingLineBreak), SpanTrackingMode.EdgeInclusive);
 				} else if (GetBounds(textView, line.Start, line.End, out start, out end)) {
-					yield return snapshot.CreateTrackingSpan(Span.FromBounds(start, end), SpanTrackingMode.EdgeInclusive);
-				}
+					if (line.Start == start && emptyLinesAtEnd)
+						yield return snapshot.CreateTrackingSpan(Span.FromBounds(line.Start, line.EndIncludingLineBreak), SpanTrackingMode.EdgeInclusive);
+					else
+						yield return snapshot.CreateTrackingSpan(Span.FromBounds(start, end), SpanTrackingMode.EdgeInclusive);
+				} else
+					emptyLinesAtEnd = false;
 			}
 		}
 
