@@ -23,8 +23,7 @@ namespace SpoiledCat.Utils
 
 			// Create an in memory xps package to write to            
 			using (var stream = new MemoryStream()) {
-				Package package = Package.Open(stream,
-											   FileMode.CreateNew, FileAccess.ReadWrite);
+				Package package = Package.Open(stream, FileMode.CreateNew, FileAccess.ReadWrite);
 
 				// A name (any name) is required when referencing the package.
 				const string inMemoryPackageName = "memorystream://out.xps";
@@ -36,8 +35,7 @@ namespace SpoiledCat.Utils
 				// We must keep the document open until we have finished with 
 				// the resulting visual, otherwise it wont be able to access 
 				// its resources.
-				using (var doc = new XpsDocument(
-					package, CompressionOption.Maximum, inMemoryPackageName)) {
+				using (var doc = new XpsDocument(package, CompressionOption.Maximum, inMemoryPackageName)) {
 					// Print the control using Xps printing.
 					Visual capture = PrintToVisual(doc, rect);
 
@@ -143,8 +141,7 @@ namespace SpoiledCat.Utils
 		/// <param name="height"></param>
 		/// <param name="width"></param>
 		/// <returns></returns>
-		private static RenderTargetBitmap RenderVisual(Visual visual,
-													   double height, double width)
+		private static RenderTargetBitmap RenderVisual(Visual visual, double height, double width)
 		{
 			// Default dpi settings
 			const double dpiX = 96;
